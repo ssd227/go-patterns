@@ -2,6 +2,8 @@ package main
 
 import "fmt"
 
+// 这个版本有点滥用goroutinue，代码复杂度太高，数值通过chan一个一个的回传，代码运行效率不见的就变高了。
+
 // merge sort，使用goroutinues 和 channel 提高并发度
 func merge_sort_conc(sli []float64, res_chan chan float64) {
 	fmt.Println("[debug] sub_merge, sli:", sli, len(sli))
@@ -67,7 +69,7 @@ func merge_sort_conc(sli []float64, res_chan chan float64) {
 			}
 		}
 
-		fmt.Printf("[debug][each loop] sli:%v, loop: %d,val:(%f, %f), received_n(%d, %d),.\n",
+		fmt.Printf("[debug][each_loop] sli:%v, loop: %d,val:(%f, %f), received_n(%d, %d),.\n",
 			sli, i, left_val, right_val, left_left, right_left)
 
 		if left_tag && right_tag { // 都是新值需要比较
@@ -79,21 +81,18 @@ func merge_sort_conc(sli []float64, res_chan chan float64) {
 				res_chan <- right_val
 				right_tag = false
 			}
-		} else if left_tag && right_left == 0 {
+		} else if left_tag && right_left == 0 { // 仅左channel有值
 			res_chan <- left_val
-			left_tag = false // 旧值作废，需要通过select重新取
+			left_tag = false
 			fmt.Printf("[debug][sort_two_chan][left new] sli:%v, loop:%d val(%f, %f).\n", sli, i, left_val, right_val)
-		} else if right_tag && left_left == 0 {
+		} else if right_tag && left_left == 0 { // 仅右channel有值
 			res_chan <- right_val
 			right_tag = false
 			fmt.Printf("[debug][sort_two_chan][right new] sli:%v, loop:%d val(%f, %f).\n", sli, i, left_val, right_val)
 		}
 
-		fmt.Printf("[debug][sort_two_chan][loop_final_state] sli:%v, loop:%d,tag(%t, %t),left(%d, %d).\n",
-			sli, i, left_tag, right_tag, left_left, right_left)
-
-		fmt.Printf("[debug][sort_two_chan][break_tag] sli:%v, loop:%d,break-tag:%t.\n",
-			sli, i, (left_left+right_left) == 0 && !left_tag && !right_tag)
+		fmt.Printf("[debug][sort_two_chan][loop_final_state] sli:%v, loop:%d,tag(%t, %t),left(%d, %d), break-tag:%t.\n",
+			sli, i, left_tag, right_tag, left_left, right_left, (left_left+right_left) == 0 && !left_tag && !right_tag)
 
 		if (left_left+right_left) == 0 && !left_tag && !right_tag {
 			break
